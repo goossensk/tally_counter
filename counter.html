@@ -345,7 +345,12 @@ document.getElementById("newRecordName").addEventListener("keydown", function(ev
 
 // Initialize
 renderRecordsList();
-focusInput();
+
+// Only focus if no records exist
+if (Object.keys(records).length === 0) {
+    focusInput();
+}
+
 </script>
 
 </body>
