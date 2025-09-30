@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Records Counter</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; margin:0; }
   h1 { text-align: center; margin-bottom: 20px; }
@@ -35,7 +36,7 @@
   .deleteBtn { background: lightcoral; }
   .configBtn { background: lightgray; }
 
-  .back { font-size: 1.5rem; cursor: pointer; display: inline-block; margin-bottom: 20px; }
+  .back { font-size: 1.5rem; cursor: pointer; display: block; margin-bottom: 20px; }
   #history { margin-top: 20px; font-size: 1rem; white-space: pre-line; }
   .container { max-width: 400px; margin: auto; }
   #counterView { padding-bottom: 120px; }
@@ -70,6 +71,58 @@
 #startView input { flex: 1; }
 #startView .addRecord { flex: 0; width: 50px; }
 
+#counterHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;            /* full page width */
+  background: white;
+  z-index: 1000;
+  padding: 10px 0;        /* top/bottom padding */
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#counterHeader .back {
+  position: absolute;
+  left: 10px;             /* small margin from left edge */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+#counterHeader h1 {
+  margin: 0.2rem 0;       /* small vertical spacing */
+}
+
+#historyContainer {
+  margin-top: 120px;       /* height of header */
+  margin-bottom: 120px;    /* height of counter buttons */
+  overflow-y: auto;
+  max-height: calc(100vh - 120px - 120px);
+  padding: 10px 20px;      /* add side padding for content */
+}
+
+#counterButtons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  background: white;
+  border-top: 1px solid #ccc;
+  z-index: 1000;
+}
+
+#counterButtons button {
+  flex: 1;
+  margin: 0 5px;
+  padding: 2rem 0;
+  font-size: 2rem;
+  border-radius: 10px;
+}
+
   
 </style>
 </head>
@@ -94,7 +147,6 @@
     <button style="flex:1;" onclick="document.getElementById('importFile').click()">📥 Import Records</button>
     <input type="file" id="importFile" style="display:none;" onchange="importXML(event)">
   </div>
-  
 </div>
 
 <!-- CONFIG VIEW -->
@@ -109,14 +161,20 @@
 
 <!-- COUNTER VIEW -->
 <div id="counterView" class="hidden">
-  <div class="back" onclick="goBack()">⬅</div>
-  <h1 id="recordName"></h1>
-  <h1 id="score"></h1>
-  <div id="history"></div>
-  <div id="counterButtons">
-    <button class="good" onclick="changeScore(+1)">➕</button>
-    <button class="bad" onclick="changeScore(-2)">➖</button>
-  </div>
+	<div id="counterHeader">
+		<div class="back" onclick="goBack()">⬅</div>		
+		<h1 id="recordName"></h1>
+		<h1 id="score"></h1>
+	</div>
+	
+	<div id="historyContainer">
+		<div id="history"></div>
+	</div>
+  
+	<div id="counterButtons">
+		<button class="good" onclick="changeScore(+1)">➕</button>
+		<button class="bad" onclick="changeScore(-2)">➖</button>
+	</div>
 </div>
 
 </div>
