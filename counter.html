@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Records Counter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; margin:0; }
+  h1 { text-align: center; margin-bottom: 20px; }
+  .hidden { display: none; }
+
+  input, button { font-size: 1.2rem; padding: 0.8rem; margin: 0.5rem 0; border-radius: 10px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; }
+  button { cursor: pointer; border: none; }
+  button.good { background: lightgreen; }
+  button.bad { background: lightcoral; }
+  button.addRecord { background: lightblue; flex: 1; }
+
+  #score { display: block; width: 98%; margin: 0 auto; font-size: 3rem; text-align: center; }
+
+  #counterButtons {
+    position: fixed; bottom: 0; left: 0; width: 100%; box-sizing: border-box;
+    display: flex; justify-content: space-around; padding: 10px; background: white; border-top: 1px solid #ccc; z-index: 1000;
+  }
+  #counterButtons button { flex: 1; margin: 0 5px; padding: 2rem 0; font-size: 2rem; border-radius: 10px; }
+
+	#newRecordGroup {
+	position: fixed; bottom: 0px; left: 0; width: 100%; box-sizing: border-box;
+	display: flex; gap: 5px; justify-content: space-around; padding: 10px; background: white; border-top: 1px solid #ccc; z-index: 1000;
+	}
+
+  #recordsList { margin-top: 10px; }
+  .recordRow { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+  .recordBtn { flex: 1; font-size: 1.2rem; padding: 1rem; border-radius: 10px; text-align: left; }
+  .deleteBtn, .configBtn { flex: 0; padding: 0.8rem 1rem; border-radius: 10px; }
+  .deleteBtn { background: lightcoral; }
+  .configBtn { background: lightgray; }
+
+  .back { font-size: 1.5rem; cursor: pointer; display: inline-block; margin-bottom: 20px; }
+  #history { margin-top: 20px; font-size: 1rem; white-space: pre-line; }
+  .container { max-width: 400px; margin: auto; }
+  #counterView { padding-bottom: 120px; }
+  .history-positive { color: green; }
+  .history-negative { color: red; }
+  .history-entry { display: block; }
+  
+  .back {
+  display: inline-block;
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-bottom: 20px;
+  padding: 0.5rem 1rem;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  transition: background 0.2s;
+  text-align: center;
+}
+
+.back:hover {
+  background-color: #ddd;
+}
+
+.history-delta {
+  display: inline-block;
+  width: 2ch; /* width enough for + or - and one digit, adjusts automatically */
+  text-align: right; /* align signs/numbers nicely */
+  margin-right: 5px; /* spacing before timestamp */
+}
+
+#startView input { flex: 1; }
+#startView .addRecord { flex: 0; width: 50px; }
+
+  
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- START VIEW -->
+<div id="startView">
+  <h1>Choose a record</h1>
+  <div id="recordsList"></div>
+  
+  <!-- New record input + add button -->
+  <div style="display:flex; gap:5px; margin-top:10px;">
+    <input id="newRecordName" placeholder="New record name" style="flex:1;">
+    <button class="addRecord" onclick="addRecord()">➕</button>
+  </div>
+
+  <!-- Export / Import buttons -->
+   <div style="display:flex; gap:5px; margin-top:10px;">
+    <button style="flex:1;" onclick="exportXML()">📤 Export Records</button>
+    <button style="flex:1;" onclick="document.getElementById('importFile').click()">📥 Import Records</button>
+    <input type="file" id="importFile" style="display:none;" onchange="importXML(event)">
+  </div>
+  
+</div>
+
+<!-- CONFIG VIEW -->
+<div id="configView" class="hidden">
+  <div class="back" onclick="closeConfig()">⬅</div>
+  <h1>Configure Record</h1>
+  <div id="configRecordName"></div>
+  <label for="configScore">Score:</label>
+  <input type="number" id="configScore">
+  <button onclick="saveConfig()">Save</button>
+</div>
+
+<!-- COUNTER VIEW -->
+<div id="counterView" class="hidden">
+  <div class="back" onclick="goBack()">⬅</div>
+  <h1 id="recordName"></h1>
+  <h1 id="score"></h1>
+  <div id="history"></div>
+  <div id="counterButtons">
+    <button class="good" onclick="changeScore(+1)">➕</button>
+    <button class="bad" onclick="changeScore(-2)">➖</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const PIN_CODE = "1234"; // PIN for sensitive actions
+
+let records = JSON.parse(localStorage.getItem("records") || "{}");
+let currentRecord = null;
+let configRecord = null;
+
+// --- PIN check before action ---
+function requirePin(callback) {
+  const pin = prompt("Enter PIN:");
+  if(pin === PIN_CODE) callback();
+  else alert("Incorrect PIN!");
+}
+
+// --- Record functions ---
+function saveData() { localStorage.setItem("records", JSON.stringify(records)); }
+
+function addRecord() {
+  const name = document.getElementById("newRecordName").value.trim();
+  if (!name) return alert("Enter a name!");
+  if (records[name]) return alert("Record already exists!");
+  records[name] = { score: 0, history: [] };
+  saveData();
+  document.getElementById("newRecordName").value = "";
+  renderRecordsList();
+  focusInput();
+}
+
+function renderRecordsList() {
+  const listDiv = document.getElementById("recordsList");
+  listDiv.innerHTML = "";
+  Object.keys(records).forEach(name => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "recordRow";
+
+    const btn = document.createElement("button");
+    btn.className = "recordBtn";
+    btn.textContent = name + " (" + records[name].score + ")";
+    btn.onclick = () => openCounter(name);
+
+    const cfgBtn = document.createElement("button");
+    cfgBtn.className = "configBtn";
+    cfgBtn.textContent = "⚙️";
+    cfgBtn.onclick = () => openConfig(name);
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "deleteBtn";
+    delBtn.textContent = "🗑️";
+    delBtn.onclick = () => requirePin(() => {
+      if(confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+        delete records[name];
+        saveData();
+        renderRecordsList();
+      }
+    });
+
+    wrapper.appendChild(btn);
+    wrapper.appendChild(cfgBtn);
+    wrapper.appendChild(delBtn);
+    listDiv.appendChild(wrapper);
+  });
+}
+
+// --- Counter functions ---
+function openCounter(name) {
+  currentRecord = name;
+  document.getElementById("startView").classList.add("hidden");
+  document.getElementById("counterView").classList.remove("hidden");
+  renderCounter();
+}
+
+function goBack() {
+  currentRecord = null;
+  document.getElementById("counterView").classList.add("hidden");
+  document.getElementById("startView").classList.remove("hidden");
+  renderRecordsList();
+  focusInput();
+}
+
+function changeScore(delta) {
+  if (!currentRecord) return;
+  const now = new Date();
+  const timestamp = formatTimestamp(now);
+  const entry = { delta, timestamp };
+  records[currentRecord].score += delta;
+  records[currentRecord].history.push(entry);
+  saveData();
+  renderCounter();
+}
+
+function formatTimestamp(date) {
+  const pad = (n, width = 2) => n.toString().padStart(width, '0');
+  const day = pad(date.getDate());
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = monthNames[date.getMonth()];
+  const year = date.getFullYear();
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const milliseconds = pad(date.getMilliseconds(), 3); // always 3 digits
+  return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+function renderCounter() {
+  const record = records[currentRecord];
+  if(!record) return;
+  document.getElementById("recordName").textContent = currentRecord;
+  document.getElementById("score").textContent = record.score.toString().padStart(5,"0");
+
+  const historyDiv = document.getElementById("history");
+  historyDiv.innerHTML = '';
+  record.history.slice(-50).reverse().forEach(h => {
+	  const span = document.createElement("span");
+	  span.classList.add('history-entry');
+	  span.classList.add(h.delta > 0 ? 'history-positive' : 'history-negative');
+
+	  const deltaSpan = document.createElement("span");
+	  deltaSpan.classList.add('history-delta');
+	  deltaSpan.textContent = (h.delta > 0 ? '+' : '') + h.delta;
+
+	  span.appendChild(deltaSpan);
+	  span.appendChild(document.createTextNode('at ' + h.timestamp));
+
+	  historyDiv.appendChild(span);
+	});
+
+}
+
+// --- Config functions ---
+function openConfig(name) {
+  configRecord = name;
+  document.getElementById("startView").classList.add("hidden");
+  document.getElementById("configView").classList.remove("hidden");
+  document.getElementById("configRecordName").textContent = name;
+  document.getElementById("configScore").value = records[name].score;
+}
+
+function closeConfig() {
+  configRecord = null;
+  document.getElementById("configView").classList.add("hidden");
+  document.getElementById("startView").classList.remove("hidden");
+  renderRecordsList();
+}
+
+function saveConfig() {
+  requirePin(() => {
+    if(configRecord === null) return;
+    const newScore = parseInt(document.getElementById("configScore").value, 10);
+    if(isNaN(newScore)) return alert("Enter a valid number!");
+    records[configRecord].score = newScore;
+    saveData();
+    closeConfig();
+  });
+}
+
+// --- Export/Import XML ---
+function exportXML() {
+  const xmlDoc = document.implementation.createDocument("", "", null);
+  const root = xmlDoc.createElement("records");
+  Object.keys(records).forEach(name => {
+    const recNode = xmlDoc.createElement("record");
+    recNode.setAttribute("name", name);
+    recNode.setAttribute("score", records[name].score);
+    records[name].history.forEach(h => {
+      const histNode = xmlDoc.createElement("history");
+	  histNode.setAttribute("delta", (h.delta > 0 ? '+' : '') + h.delta);
+      histNode.setAttribute("timestamp", h.timestamp);
+      recNode.appendChild(histNode);
+    });
+    root.appendChild(recNode);
+  });
+  xmlDoc.appendChild(root);
+  const serializer = new XMLSerializer();
+  const xmlStr = serializer.serializeToString(xmlDoc);
+  const blob = new Blob([xmlStr], { type: "text/xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "records.xml";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importXML(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  
+  requirePin(() => {
+	const reader = new FileReader();
+	reader.onload = function(e) {
+		const parser = new DOMParser();
+		const xml = parser.parseFromString(e.target.result, "text/xml");
+		const recNodes = xml.getElementsByTagName("record");
+		for(let rec of recNodes) {
+		  const name = rec.getAttribute("name");
+		  const score = parseInt(rec.getAttribute("score"),10) || 0;
+		  const history = [];
+		  for(let h of rec.getElementsByTagName("history")) {
+			history.push({ delta: parseInt(h.getAttribute("delta"),10), timestamp: h.getAttribute("timestamp") });
+		  }
+		  records[name] = { score, history };
+		}
+		saveData();
+		renderRecordsList();
+		alert("Import complete!");
+	};
+	reader.readAsText(file);
+  });
+  
+}
+
+// --- Utility ---
+function focusInput() {
+  const input = document.getElementById("newRecordName");
+  if (input) input.focus();
+}
+
+// Enter key triggers Add Record
+document.getElementById("newRecordName").addEventListener("keydown", function(event) {
+  if (event.key === "Enter") addRecord();
+});
+
+// Initialize
+renderRecordsList();
+focusInput();
+</script>
+
+</body>
+</html>
