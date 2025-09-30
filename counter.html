@@ -227,9 +227,16 @@ function formatTimestamp(date) {
 function renderCounter() {
   const record = records[currentRecord];
   if(!record) return;
+  
   document.getElementById("recordName").textContent = currentRecord;
-  document.getElementById("score").textContent = record.score.toString().padStart(5,"0");
-
+  
+  //Score with proper zero-padding and negative numbers.
+  const score = record.score;
+  const displayScore = score < 0 
+    ? '-' + String(Math.abs(score)).padStart(5, '0') 
+    : String(score).padStart(5, '0');
+  document.getElementById("score").textContent = displayScore;
+  
   const historyDiv = document.getElementById("history");
   historyDiv.innerHTML = '';
   record.history.slice(-50).reverse().forEach(h => {
@@ -334,8 +341,10 @@ function importXML(event) {
 
 // --- Utility ---
 function focusInput() {
-  const input = document.getElementById("newRecordName");
-  if (input) input.focus();
+	if (Object.keys(records).length === 0) {
+		const input = document.getElementById("newRecordName");
+		if (input) input.focus();
+	}
 }
 
 // Enter key triggers Add Record
