@@ -19,8 +19,18 @@
   #score { display: block; width: 98%; margin: 0 auto; font-size: 3rem; text-align: center; }
 
   #counterButtons {
-    position: fixed; bottom: 0; left: 0; width: 100%; box-sizing: border-box;
-    display: flex; justify-content: space-around; padding: 10px; background: white; border-top: 1px solid #ccc; z-index: 1000;
+    position: fixed; 
+	bottom: 0; 
+	left: 0; 
+	width: 100%; 
+	box-sizing: border-box;
+    display: flex; 
+	justify-content: space-around; 
+	padding: 10px;
+	padding-bottom: 20px;
+	background: white; 
+	border-top: 1px solid #ccc; 
+	z-index: 1000;
   }
   #counterButtons button { flex: 1; margin: 0 5px; padding: 2rem 0; font-size: 2rem; border-radius: 10px; }
 
@@ -96,7 +106,7 @@
 
 #historyContainer {
   margin-top: 120px;       /* height of header */
-  margin-bottom: 120px;    /* height of counter buttons */
+  margin-bottom: 160px;
   overflow-y: auto;
   max-height: calc(100vh - 120px - 120px);
   padding: 10px 20px;      /* add side padding for content */
@@ -123,7 +133,6 @@
   border-radius: 10px;
 }
 
-  
 </style>
 </head>
 <body>
@@ -181,8 +190,9 @@
 
 <script>
 const PIN_CODE = "1234"; // PIN for sensitive actions
+const LOCAL_STORAGE_ITEM_KEY = "tally_counter_71f366b4e0d040069861403cf06353f3_records";
 
-let records = JSON.parse(localStorage.getItem("records") || "{}");
+let records = JSON.parse(localStorage.getItem(LOCAL_STORAGE_ITEM_KEY) || "{}");
 let currentRecord = null;
 let configRecord = null;
 
@@ -194,7 +204,7 @@ function requirePin(callback) {
 }
 
 // --- Record functions ---
-function saveData() { localStorage.setItem("records", JSON.stringify(records)); }
+function saveData() { localStorage.setItem(LOCAL_STORAGE_ITEM_KEY, JSON.stringify(records)); }
 
 function addRecord() {
   const name = document.getElementById("newRecordName").value.trim();
